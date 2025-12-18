@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>비밀 채팅방</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.5.1/sockjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <style>
+        /* 디스코드 스타일 다크 테마 */
+        body {
+            background-color: #36393f; /* 어두운 회색 배경 */
+            color: #dcddde;           /* 연한 회색 글자 */
+            font-family: 'gg sans', 'Noto Sans KR', sans-serif;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+        }
+
+        /* 채팅창 전체 컨테이너 */
+        #chat-container {
+            width: 100%;
+            max-width: 800px;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            background-color: #36393f;
+        }
+
+        /* 메시지 리스트 영역 */
+        #messageArea {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            list-style-type: none;
+            margin: 0;
+        }
+
+        /* 스크롤바 디자인 (크롬 기준) */
+        #messageArea::-webkit-scrollbar { width: 8px; }
+        #messageArea::-webkit-scrollbar-thumb { background-color: #202225; border-radius: 4px; }
+
+        /* 개별 메시지 행 (프로필 + 내용) */
+        .message-row {
+            display: flex;
+            margin-bottom: 20px; /* 메시지 간 간격 */
+            align-items: flex-start;
+        }
+
+        /* 프로필 이미지 (원형) */
+        .avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: #7289da; /* 기본 파란색 */
+            margin-right: 16px;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: white;
+            font-size: 18px;
+        }
+
+        /* 메시지 내용 컨테이너 */
+        .message-content {
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* 이름과 시간 */
+        .message-header {
+            display: flex;
+            align-items: baseline;
+            margin-bottom: 4px;
+        }
+
+        .username {
+            font-weight: bold;
+            color: #ffffff;
+            margin-right: 8px;
+            cursor: pointer;
+        }
+
+        .username:hover { text-decoration: underline; }
+
+        .timestamp {
+            font-size: 12px;
+            color: #72767d;
+        }
+
+        /* 실제 메시지 텍스트 */
+        .message-text {
+            font-size: 16px;
+            line-height: 1.4;
+            white-space: pre-wrap; /* 줄바꿈 유지 */
+        }
+
+        /* 입력창 영역 (하단 고정) */
+        .input-area {
+            background-color: #36393f;
+            padding: 20px;
+            border-top: 1px solid #2f3136;
+        }
+
+        .input-box {
+            background-color: #40444b;
+            border-radius: 8px;
+            padding: 10px;
+            display: flex;
+            align-items: center;
+        }
+
+        #message {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: white;
+            font-size: 15px;
+            outline: none;
+        }
+
+        /* 버튼들 꾸미기 */
+        button {
+            background-color: #5865f2; /* 디스코드 보라색 */
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            margin-left: 10px;
+            transition: background-color 0.2s;
+        }
+        button:hover { background-color: #4752c4; }
+
+        /* 암호화 박스 스타일 변경 */
+        .secret-box {
+            border: 1px solid #faa61a;
+            color: #faa61a;
+            background: rgba(250, 166, 26, 0.1);
+            padding: 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            display: inline-block;
+        }
+
+        .img-preview {
+            max-width: 300px;
+            border-radius: 8px;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+
+
+<div id="chat-container">
+    <div style="color:white; padding:10px; text-align:center; background:#202225;">
+        현재 채팅방: <span id="roomNameDisplay" style="font-weight:bold; color:#5865F2;"></span>
+    </div>
+
+    <script>
+        document.getElementById('roomNameDisplay').innerText = window.location.pathname.split("/").pop();
+    </script>
+    <ul id="messageArea">
+    </ul>
+
+    <div class="input-area">
+        <div class="input-box">
+            <input type="file" id="imageInput" accept="image/*" style="display:none;">
+            <button onclick="document.getElementById('imageInput').click()" style="background:#40444b; color:#b9bbbe; padding:5px;">+</button>
+
+            <input type="text" id="message" placeholder="메시지 보내기" onkeypress="if(event.keyCode==13) send()">
+
+            <label style="margin-left:10px; font-size:12px; cursor:pointer;">
+                <input type="checkbox" id="encryptToggle"> 🔒
+            </label>
+
+            <button onclick="send()">전송</button>
+        </div>
+        <div id="fileNameDisplay" style="font-size:12px; color:#72767d; margin-top:5px;"></div>
+    </div>
+</div>
+
+<script src="/main.js"></script>
+<script>
+    document.getElementById('imageInput').addEventListener('change', function(){
+        var fileName = this.files[0] ? this.files[0].name : '';
+        document.getElementById('fileNameDisplay').innerText = fileName ? '파일: ' + fileName : '';
+    });
+</script>
+</body>
+</html>

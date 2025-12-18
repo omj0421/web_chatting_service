@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>채팅 로비</title>
+    <style>
+        body {
+            background-color: #36393f;
+            color: white;
+            font-family: 'Noto Sans KR', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .container {
+            background-color: #2f3136;
+            padding: 40px;
+            border-radius: 10px;
+            text-align: center;
+            width: 300px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+        h2 { margin-bottom: 30px; color: #7289da; }
+
+        .box {
+            margin-bottom: 30px;
+            padding: 20px;
+            background-color: #40444b;
+            border-radius: 8px;
+        }
+        input {
+            width: 80%;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+            border: 1px solid #202225;
+            background-color: #202225;
+            color: white;
+        }
+        button {
+            width: 90%;
+            padding: 10px;
+            border: none;
+            border-radius: 4px;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .btn-create { background-color: #5865f2; }
+        .btn-create:hover { background-color: #4752c4; }
+
+        .btn-join { background-color: #3ba55c; }
+        .btn-join:hover { background-color: #2d7d46; }
+
+        .error-msg {
+            color: #ed4245;
+            margin-bottom: 20px;
+            font-weight: bold;
+            background: rgba(237, 66, 69, 0.1);
+            padding: 10px;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h2>🚀 채팅 서비스</h2>
+
+    <div th:if="${error}" class="error-msg" th:text="${error}"></div>
+
+    <div class="box">
+        <h3>방 만들기</h3>
+        <form action="/room/create" method="post">
+            <input type="text" name="roomId" placeholder="새 방 이름 (예: game)" required>
+            <button type="submit" class="btn-create">방 개설하기</button>
+        </form>
+    </div>
+
+    <hr style="border: 0; border-top: 1px solid #4f545c; margin: 20px 0;">
+
+    <div class="box">
+        <h3>방 접속하기</h3>
+        <form action="/room/join" method="post">
+            <input type="text" name="roomId" placeholder="참여할 방 이름" required>
+            <button type="submit" class="btn-join">입장하기</button>
+        </form>
+    </div>
+</div>
+</body>
+</html>
